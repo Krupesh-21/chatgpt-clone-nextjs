@@ -1,0 +1,149 @@
+.chat-container {
+  width: 100%;
+  background-color: #fff;
+}
+
+.chat-container .input-container {
+  position: fixed;
+  bottom: 0;
+  padding: 0 30px 30px 30px;
+  width: 100%;
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0) 12%,
+    rgba(255, 255, 255, 1) 45%
+  );
+}
+
+.chat-container .input-container textarea {
+  padding: 16px 8px;
+  padding-right: 40px;
+  border-radius: 8px;
+  width: 100%;
+  border: none;
+  box-shadow: rgba(17, 17, 26, 0.05) 0px 1px 0px,
+    rgba(17, 17, 26, 0.1) 0px 0px 8px;
+  resize: none;
+  max-height: 400px;
+  height: auto;
+  font-size: 16px;
+}
+
+.chat-container .input-container textarea::-webkit-scrollbar {
+  width: 3px;
+  background-color: transparent;
+}
+
+.chat-container .input-container textarea::-webkit-scrollbar-thumb {
+  background: #e5e5e5;
+}
+
+.chat-container .input-container textarea:focus {
+  outline: none;
+}
+
+.chat-container .input-container .interact {
+  width: 70%;
+  margin: 0 auto;
+  position: relative;
+}
+
+.chat-container .input-container .interact .send-btn {
+  position: absolute;
+  top: 47%;
+  transform: translateY(-47%);
+  right: 8px;
+  padding: 10px 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.chat-container .input-container .interact .send-btn svg {
+  color: #495057;
+  cursor: default;
+  height: 20px;
+  width: 20px;
+}
+
+.chat-container .input-container .interact .send-btn.disable svg:hover,
+.chat-container .input-container .interact .send-btn.disable svg:focus {
+  color: #495057;
+}
+.chat-container .input-container .interact .send-btn svg:hover,
+.chat-container .input-container .interact .send-btn svg:focus {
+  color: #10a37f;
+}
+
+.chat-container .input-container.interact .send-btn.disable {
+  pointer-events: none;
+}
+
+.chat-container .input-container .interact .send-btn:hover,
+.chat-container .input-container .interact .send-btn:focus {
+  cursor: pointer;
+}
+
+.chat-response-container .response-container.user .icon {
+  display: flex;
+  background-color: #000000;
+  padding: 6px;
+  border-radius: 2px;
+  height: max-content;
+}
+
+.chat-response-container .response-container.user {
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.chat-response-container .response-container.model .icon {
+  display: flex;
+  background-color: #10a37f;
+  padding: 6px;
+  border-radius: 2px;
+  height: max-content;
+}
+
+.chat-response-container .response-container .icon svg {
+  fill: white;
+}
+.chat-response-container .response-container.model {
+  background-color: #f4f4f6;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.chat-response-container .response-container .chat-response {
+  width: 100%;
+  max-width: 70%;
+  margin: auto;
+  padding: 24px;
+  display: flex;
+  gap: 18px;
+}
+
+.chat-response-container .response-container .chat-response p {
+  margin: 10px 0;
+}
+
+.chat-response-container .response-container .chat-response p span.highlight {
+  font-weight: 600;
+  color: #ff0054;
+}
+
+.chat-response-container .response-container .chat-response p:first-of-type {
+  margin-top: 0;
+}
+
+.chat-response-container .response-container .chat-response p:last-of-type {
+  margin-bottom: 0;
+}
+
+.last-section {
+  height: 200px;
+}
+
+.disclaimer {
+  text-align: center;
+  margin-top: 10px;
+}
