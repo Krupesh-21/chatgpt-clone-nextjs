@@ -5,9 +5,11 @@ import { useEffect, useRef, useState } from "react";
 import CopyToClipboard from "react-copy-to-clipboard";
 import { v4 as uuid } from "uuid";
 
+import { FaRegTrashAlt } from "react-icons/fa";
 import { FaArrowUpLong } from "react-icons/fa6";
-import { FiEdit, FiEdit2 } from "react-icons/fi";
+import { FiEdit } from "react-icons/fi";
 import { GoPaste } from "react-icons/go";
+import { HiMiniPencil } from "react-icons/hi2";
 import { IoMdCheckmark } from "react-icons/io";
 import { IoPerson } from "react-icons/io5";
 import { MdOutlineKeyboardArrowDown } from "react-icons/md";
@@ -20,34 +22,40 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { PopoverClose } from "@radix-ui/react-popover";
 import "./app.css";
 
 const HomePage = () => {
   const [prompt, setPrompt] = useState("");
   const [aiResponse, setAiResponse] = useState("");
   const [history, setHistory] = useState([]);
-  const [codeblockCopied, setCodeblockCopied] = useState(false);
+  const [codeblockCopied, setCodeblockCopied] = useState({
+    copied: false,
+    index: null,
+  });
   const [gptResponseCopied, setGptResponseCopied] = useState(false);
-  const [chatHistory, setChatHistory] = useState(
-    JSON.parse(localStorage.getItem("chat_history")) || []
-  );
+  const [chatHistory, setChatHistory] = useState([]);
   const [currentSelectedHistoryId, setCurrentSelectedHistoryId] =
     useState(null);
   const [showPriceModal, setShowPriceModal] = useState(false);
+  const [showOldChatPopover, setShowOldChatPopover] = useState(false);
+  const [renameChatTitle, setRenameChatTitle] = useState({
+    id: null,
+    value: "",
+  });
+  const [updateUserQuestion, setUpdateUserQuestion] = useState({
+    edit: false,
+    id: null,
+    value: "",
+  });
 
   const promptRef = useRef(null);
   const bottomRef = useRef(null);
+  const chatHistoryTitleRef = useRef(null);
 
   const sendPromptToServer = async () => {
     const _history = [
@@ -67,10 +75,10 @@ const HomePage = () => {
       },
       data: JSON.stringify({
         prompt,
-        history: [..._history].map((item) => {
-          delete item.id;
-          return item;
-        }),
+        history: [..._history].map((item) => ({
+          role: item.role,
+          parts: item.parts,
+        })),
       }),
     });
 
@@ -84,6 +92,29 @@ const HomePage = () => {
         id: uuid(),
       });
       setHistory(_history);
+
+      const historyId = uuid();
+
+      const oldHistoryData = [...chatHistory];
+
+      if (!currentSelectedHistoryId) {
+        const data = {
+          historyId,
+          history: _history,
+          title: splitString(prompt),
+        };
+        oldHistoryData.unshift(data);
+        setCurrentSelectedHistoryId(historyId);
+      } else {
+        const oldHistoryIndex = oldHistoryData.findIndex(
+          (item) => item.historyId === currentSelectedHistoryId
+        );
+        if (oldHistoryIndex > -1) {
+          oldHistoryData[oldHistoryIndex].history = _history;
+        }
+      }
+      localStorage.setItem("chat_history", JSON.stringify(oldHistoryData));
+      setChatHistory(oldHistoryData);
     } else {
       console.log(error);
     }
@@ -97,13 +128,17 @@ const HomePage = () => {
           role: "user",
           parts: prompt,
         },
+        {
+          role: "model",
+          parts: "",
+        },
       ]);
       sendPromptToServer();
     }
   }, [prompt]);
 
   const extractLanguageKeywordAndText = (input) => {
-    const regex = /^\s*```(\w+)\n([\s\S]*?)\n\s*```/;
+    const regex = /^\s*```(\w*)\s*\n*([\s\S]*?)\n*\s*```/;
     const matches = input.match(regex);
 
     if (matches && matches.length >= 3) {
@@ -115,6 +150,16 @@ const HomePage = () => {
 
     return null;
   };
+
+  function splitString(input) {
+    // Match pattern until the first comma, full stop, semicolon, or question mark is encountered, or until the 200th character
+    const regex = /^(.{0,200}[^,.;?]*)(?:,|\.|;|\?)?/;
+    const matches = input.match(regex);
+    if (matches && matches[1]) {
+      return matches[1];
+    }
+    return input.slice(0, 200); // If pattern not found, return the first 200 characters
+  }
 
   const renderText = (text) => (
     <p
@@ -139,7 +184,6 @@ const HomePage = () => {
                   return char;
               }
             });
-            console.log(encodedContent);
             return `<span class='highlight'>${encodedContent}</span>`;
           })
           .replace(/^\*/, "-"),
@@ -149,6 +193,13 @@ const HomePage = () => {
 
   const handleNewChatClick = () => {
     const oldHistoryData = [...chatHistory];
+    if (
+      !currentSelectedHistoryId &&
+      history.length < 1 &&
+      prompt.trim().length < 1
+    ) {
+      return;
+    }
     if (currentSelectedHistoryId) {
       const oldHistoryIndex = oldHistoryData.findIndex(
         (item) => item.historyId === currentSelectedHistoryId
@@ -157,7 +208,7 @@ const HomePage = () => {
         oldHistoryData[oldHistoryIndex].history = history;
       }
     } else {
-      const title = history[0].parts;
+      const title = splitString(history[0].parts);
       const historyId = uuid();
       const data = {
         historyId,
@@ -173,6 +224,7 @@ const HomePage = () => {
   };
 
   const handleOldChatClick = (historyId) => {
+    if (historyId === currentSelectedHistoryId) return;
     if (!currentSelectedHistoryId && history.length > 0) {
       const oldHistoryData = [...chatHistory];
       const title = history[0].parts;
@@ -191,13 +243,33 @@ const HomePage = () => {
     );
 
     if (_chatHistory) {
+      const oldHistoryId = currentSelectedHistoryId;
+      const oldHistoryData = [...chatHistory];
+      const oldHistoryIndex = oldHistoryData.findIndex(
+        (item) => item.historyId === oldHistoryId
+      );
+
+      if (oldHistoryIndex > -1) {
+        oldHistoryData[oldHistoryIndex].active = false;
+      }
+
       const { history, historyId } = _chatHistory;
       setHistory(history);
       setCurrentSelectedHistoryId(historyId);
+
+      const newHistoryIndex = oldHistoryData.findIndex(
+        (item) => item.historyId === historyId
+      );
+      if (newHistoryIndex > -1) {
+        oldHistoryData[newHistoryIndex].active = true;
+      }
+
+      setChatHistory(oldHistoryData);
+      localStorage.setItem("chat_history", JSON.stringify(oldHistoryData));
     }
   };
 
-  const renderGptResponse = (data) => {
+  const renderGptResponse = (data, index) => {
     const { text, languageKeyword, blockId } =
       extractLanguageKeywordAndText(data) || {};
 
@@ -209,14 +281,22 @@ const HomePage = () => {
             <CopyToClipboard
               text={text}
               onCopy={(text, result) => {
-                setCodeblockCopied(result);
+                setCodeblockCopied({ copied: result, index });
               }}
             >
               <div className="icon">
                 <div className="d-flex">
-                  {codeblockCopied ? <IoMdCheckmark /> : <GoPaste />}
+                  {codeblockCopied.copied && index === codeblockCopied.index ? (
+                    <IoMdCheckmark />
+                  ) : (
+                    <GoPaste />
+                  )}
                 </div>
-                <span>{codeblockCopied ? "Copied" : "Copy Code"}</span>
+                <span>
+                  {codeblockCopied.copied && index === codeblockCopied.index
+                    ? "Copied"
+                    : "Copy Code"}
+                </span>
               </div>
             </CopyToClipboard>
           </div>
@@ -246,6 +326,31 @@ const HomePage = () => {
     setShowPriceModal((prev) => !prev);
   };
 
+  const handleUserEditClick = (id, value, reset = false) => {
+    setUpdateUserQuestion(
+      reset ? { edit: false, id: null, value: "" } : { edit: true, id, value }
+    );
+  };
+
+  const handleUserEditSave = (oldValue = "") => {
+    if (
+      updateUserQuestion.value.trim().toLowerCase() ===
+      oldValue.trim().toLowerCase()
+    ) {
+      handleUserEditClick(null, null, true);
+      return;
+    }
+
+    const index = history.findIndex(
+      (item) => item.id === updateUserQuestion.id
+    );
+
+    const _history = history.slice(0, index);
+    setPrompt(updateUserQuestion.value);
+    setHistory(_history);
+    handleUserEditClick(null, null, true);
+  };
+
   useEffect(() => {
     const textarea = promptRef.current;
 
@@ -256,6 +361,21 @@ const HomePage = () => {
         textarea.style.height = "auto";
       }
     });
+
+    if (localStorage) {
+      setChatHistory(JSON.parse(localStorage.getItem("chat_history")) || []);
+
+      const oldHistoryData =
+        JSON.parse(localStorage.getItem("chat_history")) || [];
+      if (oldHistoryData.length > 0) {
+        const lastActiveHistory = oldHistoryData.find((item) => item.active);
+
+        if (lastActiveHistory) {
+          setCurrentSelectedHistoryId(lastActiveHistory.historyId);
+          setHistory(lastActiveHistory.history);
+        }
+      }
+    }
 
     return () => {
       textarea.removeEventListener("keydown", (e) => {
@@ -274,9 +394,9 @@ const HomePage = () => {
   }, [history]);
 
   useEffect(() => {
-    if (codeblockCopied) {
+    if (codeblockCopied.copied) {
       setTimeout(() => {
-        setCodeblockCopied(false);
+        setCodeblockCopied({ copied: false, index: null });
       }, 1500);
     }
   }, [codeblockCopied]);
@@ -292,7 +412,7 @@ const HomePage = () => {
   return (
     <>
       <div id="content">
-        <div className="sidebar-container">
+        <div className="sidebar-container lg:block md:hidden sm:hidden xs:hidden">
           <div
             className="new-chat-container hover:bg-stone-300/15"
             onClick={handleNewChatClick}
@@ -307,27 +427,136 @@ const HomePage = () => {
               <FiEdit />
             </div>
           </div>
-          <div className="chat-history-container">
+          <div className="chat-history-container" ref={chatHistoryTitleRef}>
             {chatHistory.length > 0
-              ? chatHistory.map((item) => (
-                  <div
-                    key={item.historyId}
-                    className="title-container rounded-xl mt-1 relative"
-                    onClick={() => handleOldChatClick(item.historyId)}
-                  >
-                    <p className="title">{item.title}</p>
-                    <div className="absolute top-3 right-0 bg-gradient-to-r from-slate-50/15 to-slate-900/75 settings">
-                      <Popover>
-                        <PopoverTrigger>
-                          <PiDotsThreeBold className="fill-white	" />
-                        </PopoverTrigger>
-                      </Popover>
+              ? chatHistory.map((item) =>
+                  renameChatTitle.id === item.historyId ? (
+                    <Input
+                      key={item.historyId}
+                      value={renameChatTitle.value}
+                      onChange={({ target: { value } }) =>
+                        setRenameChatTitle((prev) => ({ ...prev, value }))
+                      }
+                      autoFocus
+                      className="bg-transparent mt-1 text-white outline-0 focus:outline-0 focus:border-0"
+                      onBlur={() => {
+                        const _chatHistory = [...chatHistory];
+                        const index = _chatHistory.findIndex(
+                          (item) => item.historyId === renameChatTitle.id
+                        );
+                        if (index > -1) {
+                          _chatHistory[index].title = renameChatTitle.value;
+                          setChatHistory(_chatHistory);
+                          setRenameChatTitle({ id: null, value: "" });
+                          setShowOldChatPopover(null);
+                          localStorage.setItem(
+                            "chat_history",
+                            JSON.stringify(_chatHistory)
+                          );
+                        }
+                      }}
+                    />
+                  ) : (
+                    <div
+                      key={item.historyId}
+                      className={clsx(
+                        "title-container hover:bg-zinc-400 rounded-xl mt-1 relative overflow-hidden group",
+                        {
+                          "bg-zinc-400 remove-bg-lenear":
+                            !!currentSelectedHistoryId &&
+                            currentSelectedHistoryId === item.historyId,
+                        }
+                      )}
+                      onClick={() => handleOldChatClick(item.historyId)}
+                    >
+                      <p className="title">{item.title}</p>
+                      <div
+                        className={clsx(
+                          "absolute h-full w-full top-0 right-0 bg-apply"
+                        )}
+                      />
+                      <div
+                        className={clsx(
+                          "absolute group-hover:bg-zinc-400 items-center justify-end h-full top-0 right-0 hidden group-hover:flex settings",
+                          {
+                            "d-flex": showOldChatPopover,
+                          }
+                        )}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                      >
+                        <Popover
+                          onOpenChange={(open) => {
+                            if (!open) {
+                              setShowOldChatPopover(open);
+                            }
+                          }}
+                        >
+                          <PopoverTrigger
+                            onClick={() => setShowOldChatPopover(true)}
+                            className="px-3"
+                          >
+                            <PiDotsThreeBold className="fill-white" />
+                          </PopoverTrigger>
+                          <PopoverContent
+                            align="start"
+                            className="rounded-lg p-0"
+                          >
+                            <div className="d-flex w-full flex-col justify-center p-2">
+                              <PopoverClose
+                                className="d-flex gap-3 items-center p-2 hover:bg-zinc-200 rounded-lg cursor-pointer"
+                                onClick={() => {
+                                  const _chatHistory = chatHistory.filter(
+                                    (data) => item.historyId !== data.historyId
+                                  );
+                                  setChatHistory(_chatHistory);
+                                  setShowOldChatPopover(false);
+                                  localStorage.setItem(
+                                    "chat_history",
+                                    JSON.stringify(_chatHistory)
+                                  );
+                                }}
+                              >
+                                <FaRegTrashAlt className="fill-red-400" />
+                                <span>Delete Chat</span>
+                              </PopoverClose>
+                              <PopoverClose
+                                className="d-flex gap-3 items-center p-2 hover:bg-zinc-200	rounded-lg cursor-pointer w-full"
+                                onClick={() => {
+                                  setRenameChatTitle({
+                                    id: item.historyId,
+                                    value: item.title,
+                                  });
+                                  setShowOldChatPopover(false);
+                                }}
+                              >
+                                <HiMiniPencil />
+                                <span>Rename Chat</span>
+                              </PopoverClose>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  )
+                )
               : null}
           </div>
         </div>
+
+        {/* <Sheet>
+          <SheetTrigger className="lg:hidden md:block">Open</SheetTrigger>
+          <SheetContent side={"left"}>
+            <SheetHeader>
+              <SheetTitle>Are you absolutely sure?</SheetTitle>
+              <SheetDescription>
+                This action cannot be undone. This will permanently delete your
+                account and remove your data from our servers.
+              </SheetDescription>
+            </SheetHeader>
+          </SheetContent>
+        </Sheet> */}
 
         <div className="chat-container">
           <div className="d-flex p-2 justify-between">
@@ -351,41 +580,24 @@ const HomePage = () => {
                       <Checkbox className="rounded-full" checked />
                     </div>
                   </div>
-                  <Dialog modal>
-                    <DialogTrigger asChild>
-                      <div
-                        className="d-flex justify-between mt-1.5 items-center gap-2.5 p-3 hover:bg-zinc-100 rounded-lg cursor-pointer"
-                        onClick={togglePricingModal}
-                      >
-                        <div className="d-flex flex-col	">
-                          <span className="font-bold">GPT-4</span>
-                          <span className="text-sm text-muted-foreground">
-                            Our smartes and most capable model. Includes DALL-E,
-                            browsing and more
-                          </span>
-                          <Button className="mt-1 bg-violet-500">
-                            Upgrade to Plus
-                          </Button>
-                        </div>
-                        <div>
-                          <Checkbox className="rounded-full" disabled />
-                        </div>
-                      </div>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Upgrade your plan</DialogTitle>
-                      </DialogHeader>
-                      <div className="d-flex border-y border-y-slate-900">
-                        <div className="d-flex flex-col">hello</div>
-                      </div>
-                      <DialogFooter>
-                        <span>
-                          Need more capabilities? See ChatGPT EnterPrise
-                        </span>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
+                  <div
+                    className="d-flex justify-between mt-1.5 items-center gap-2.5 p-3 hover:bg-zinc-100 rounded-lg cursor-pointer"
+                    onClick={togglePricingModal}
+                  >
+                    <div className="d-flex flex-col	">
+                      <span className="font-bold">GPT-4</span>
+                      <span className="text-sm text-muted-foreground">
+                        Our smartes and most capable model. Includes DALL-E,
+                        browsing and more
+                      </span>
+                      <Button className="mt-1 bg-violet-500">
+                        Upgrade to Plus
+                      </Button>
+                    </div>
+                    <div>
+                      <Checkbox className="rounded-full" disabled />
+                    </div>
+                  </div>
                 </div>
               </PopoverContent>
             </Popover>
@@ -414,21 +626,81 @@ const HomePage = () => {
                             <SiSendinblue />
                           )}
                         </div>
-                        <span>{item.role === "user" ? "You" : "ChatGPT"}</span>
+                        <span className="font-bold">
+                          {item.role === "user" ? "You" : "ChatGPT"}
+                        </span>
                       </div>
                       <div className="response">
                         {item.role === "user" ? (
-                          <p>{item.parts}</p>
-                        ) : (
+                          updateUserQuestion.edit &&
+                          updateUserQuestion.id === item.id ? (
+                            <div className="d-flex flex-col w-full">
+                              <Textarea
+                                autoFocus
+                                value={updateUserQuestion.value}
+                                onChange={({ target: { value } }) =>
+                                  handleUserEditClick(
+                                    updateUserQuestion.id,
+                                    value
+                                  )
+                                }
+                                rows={1}
+                                id="edit-text-area"
+                                className="mt-1 resize-none max-h-[300px]"
+                                onInput={() => {
+                                  const el =
+                                    document.getElementById("edit-text-area");
+                                  if (el) {
+                                    el.style.height = "auto";
+                                    el.style.height = `${el.scrollHeight}px`;
+                                  }
+                                }}
+                              />
+                              <div className="d-flex justify-end items-center w-full mt-1.5 gap-3">
+                                <Button
+                                  className="bg-[#10a37f] hover:bg-[#10a37f]"
+                                  onClick={() => handleUserEditSave(item.parts)}
+                                >
+                                  Save & Submit
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  onClick={() =>
+                                    handleUserEditClick(null, null, true)
+                                  }
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p>{item.parts}</p>
+                          )
+                        ) : item.parts ? (
                           item.parts
                             .split(/(```[^`]+```)/)
-                            .map((data) => renderGptResponse(data))
+                            .map((data, index) =>
+                              renderGptResponse(data, index)
+                            )
+                        ) : (
+                          <div
+                            id="blinking-cursor"
+                            className=" h-3.5 w-2 bg-zinc-950	 rounded-md"
+                          />
                         )}
                       </div>
                       <div className="tools">
                         {item.role === "user" ? (
-                          <FiEdit2 className="stroke-gray-500" />
-                        ) : (
+                          updateUserQuestion.edit &&
+                          updateUserQuestion.id === item.id ? null : (
+                            <HiMiniPencil
+                              className="fill-gray-400"
+                              onClick={() =>
+                                handleUserEditClick(item.id, item.parts)
+                              }
+                            />
+                          )
+                        ) : item.parts ? (
                           <CopyToClipboard
                             text={item.parts}
                             onCopy={(text, result) =>
@@ -441,7 +713,7 @@ const HomePage = () => {
                               <GoPaste className="fill-gray-500" />
                             )}
                           </CopyToClipboard>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -465,12 +737,12 @@ const HomePage = () => {
 
           <div className="input-container">
             <div className="interact w-full max-w-[768px] mx-auto relative">
-              <textarea
+              <Textarea
                 type="text"
                 name="prompt"
                 rows={1}
                 ref={promptRef}
-                onInput={(e) => {
+                onInput={() => {
                   promptRef.current.style.height = "auto";
                   promptRef.current.style.height = `${promptRef.current.scrollHeight}px`;
                 }}

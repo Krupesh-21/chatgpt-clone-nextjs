@@ -327,7 +327,7 @@
   font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  /* text-overflow: ellipsis; */
 }
 
 .sidebar-container .chat-history-container {
@@ -340,10 +340,36 @@
   cursor: pointer;
 }
 
-/* .title-container .settings {
-  background-image: linear-gradient(
+.title-container .bg-apply {
+  background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0) 14%,
-    rgba(0, 0, 0, 1) 81%
+    rgba(255, 255, 255, 0) 36%,
+    rgba(0, 0, 0, 1) 89%
   );
-} */
+}
+.remove-bg-lenear .bg-apply {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 36%,
+    rgba(161, 161, 170, 1) 89%
+  ) !important;
+}
+.title-container:hover .bg-apply {
+  background: transparent !important;
+}
+
+@keyframes blink {
+  0% {
+    background: transparent;
+  }
+  50% {
+    background-color: rgb(9 9 11);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+#blinking-cursor {
+  animation: blink 0.9s infinite;
+}
