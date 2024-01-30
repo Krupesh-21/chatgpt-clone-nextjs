@@ -300,7 +300,7 @@ const HomePage = () => {
               </div>
             </CopyToClipboard>
           </div>
-          <pre className="code-block">
+          <pre className="code-block text-sm	">
             <code>{text}</code>
           </pre>
         </div>
