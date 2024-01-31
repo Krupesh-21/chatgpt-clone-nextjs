@@ -31,7 +31,7 @@
 }
 
 .chat-container .input-container textarea::-webkit-scrollbar {
-  width: 3px;
+  width: 0px;
   background-color: transparent;
 }
 
@@ -45,8 +45,8 @@
 
 .chat-container .input-container .interact .send-btn {
   position: absolute;
-  top: 47%;
-  transform: translateY(-47%);
+  top: 50%;
+  transform: translateY(-50%);
   right: 8px;
   padding: 5px;
   display: flex;
@@ -372,4 +372,8 @@
 
 #blinking-cursor {
   animation: blink 0.9s infinite;
+}
+
+.response-container.user .response p {
+  white-space: pre-wrap;
 }

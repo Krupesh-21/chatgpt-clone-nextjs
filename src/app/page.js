@@ -351,17 +351,22 @@ const HomePage = () => {
     handleUserEditClick(null, null, true);
   };
 
+  const handleKeyDown = (event) => {
+    if (event.shiftKey && event.key === "Enter") {
+      event.preventDefault();
+      const currentValue = event.target.value;
+      const newValue = currentValue + "\n";
+      promptRef.current.value = newValue;
+      promptRef.current.style.height = "auto";
+      promptRef.current.style.height = `${promptRef.current.scrollHeight}px`;
+    } else if (!event.shiftKey && event.key === "Enter") {
+      event.preventDefault();
+      handlePromptData();
+      promptRef.current.style.height = "auto";
+    }
+  };
+
   useEffect(() => {
-    const textarea = promptRef.current;
-
-    textarea.addEventListener("keydown", (e) => {
-      if (e.keyCode === 13 || e.key === "Enter") {
-        e.preventDefault();
-        handlePromptData();
-        textarea.style.height = "auto";
-      }
-    });
-
     if (localStorage) {
       setChatHistory(JSON.parse(localStorage.getItem("chat_history")) || []);
 
@@ -376,16 +381,6 @@ const HomePage = () => {
         }
       }
     }
-
-    return () => {
-      textarea.removeEventListener("keydown", (e) => {
-        if (e.keyCode === 13 || e.key === "Enter") {
-          e.preventDefault();
-          handlePromptData();
-          textarea.style.height = "auto";
-        }
-      });
-    };
   }, []);
 
   useEffect(() => {
@@ -646,7 +641,7 @@ const HomePage = () => {
                                 }
                                 rows={1}
                                 id="edit-text-area"
-                                className="mt-1 resize-none max-h-[300px]"
+                                className="mt-1 resize-none max-h-[300px] min-h-[30px]"
                                 onInput={() => {
                                   const el =
                                     document.getElementById("edit-text-area");
@@ -747,6 +742,8 @@ const HomePage = () => {
                   promptRef.current.style.height = `${promptRef.current.scrollHeight}px`;
                 }}
                 placeholder="Message ChatGPT..."
+                className="min-h-[50px]"
+                onKeyDown={handleKeyDown}
               />
               <div className={clsx("send-btn")} onClick={handlePromptData}>
                 <FaArrowUpLong />
