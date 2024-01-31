@@ -62,7 +62,7 @@ const HomePage = () => {
       ...history,
       {
         role: "user",
-        parts: prompt,
+        parts: [{ text: prompt }],
         id: uuid(),
       },
     ];
@@ -75,7 +75,7 @@ const HomePage = () => {
       },
       data: JSON.stringify({
         prompt,
-        history: [..._history].map((item) => ({
+        history: history.map((item) => ({
           role: item.role,
           parts: item.parts,
         })),
@@ -88,7 +88,7 @@ const HomePage = () => {
       setAiResponse(data);
       _history.push({
         role: "model",
-        parts: data,
+        parts: [{ text: data }],
         id: uuid(),
       });
       setHistory(_history);
@@ -102,6 +102,7 @@ const HomePage = () => {
           historyId,
           history: _history,
           title: splitString(prompt),
+          active: true,
         };
         oldHistoryData.unshift(data);
         setCurrentSelectedHistoryId(historyId);
@@ -111,6 +112,7 @@ const HomePage = () => {
         );
         if (oldHistoryIndex > -1) {
           oldHistoryData[oldHistoryIndex].history = _history;
+          oldHistoryData[oldHistoryIndex].active = true;
         }
       }
       localStorage.setItem("chat_history", JSON.stringify(oldHistoryData));
@@ -126,11 +128,11 @@ const HomePage = () => {
         ...prev,
         {
           role: "user",
-          parts: prompt,
+          parts: [{ text: prompt }],
         },
         {
           role: "model",
-          parts: "",
+          parts: [{ text: "" }],
         },
       ]);
       sendPromptToServer();
@@ -200,25 +202,7 @@ const HomePage = () => {
     ) {
       return;
     }
-    if (currentSelectedHistoryId) {
-      const oldHistoryIndex = oldHistoryData.findIndex(
-        (item) => item.historyId === currentSelectedHistoryId
-      );
-      if (oldHistoryIndex > -1) {
-        oldHistoryData[oldHistoryIndex].history = history;
-      }
-    } else {
-      const title = splitString(history[0].parts);
-      const historyId = uuid();
-      const data = {
-        historyId,
-        title,
-        history,
-      };
-      oldHistoryData.unshift(data);
-    }
-    localStorage.setItem("chat_history", JSON.stringify(oldHistoryData));
-    setChatHistory(oldHistoryData);
+    setCurrentSelectedHistoryId(null);
     setHistory([]);
     setPrompt("");
   };
@@ -227,7 +211,7 @@ const HomePage = () => {
     if (historyId === currentSelectedHistoryId) return;
     if (!currentSelectedHistoryId && history.length > 0) {
       const oldHistoryData = [...chatHistory];
-      const title = history[0].parts;
+      const title = history[0].parts[0].text;
       const historyId = uuid();
       const data = {
         historyId,
@@ -654,7 +638,9 @@ const HomePage = () => {
                               <div className="d-flex justify-end items-center w-full mt-1.5 gap-3">
                                 <Button
                                   className="bg-[#10a37f] hover:bg-[#10a37f]"
-                                  onClick={() => handleUserEditSave(item.parts)}
+                                  onClick={() =>
+                                    handleUserEditSave(item.parts[0].text)
+                                  }
                                 >
                                   Save & Submit
                                 </Button>
@@ -669,10 +655,10 @@ const HomePage = () => {
                               </div>
                             </div>
                           ) : (
-                            <p>{item.parts}</p>
+                            <p>{item.parts[0].text}</p>
                           )
-                        ) : item.parts ? (
-                          item.parts
+                        ) : item.parts.length > 0 && item.parts[0].text ? (
+                          item.parts[0].text
                             .split(/(```[^`]+```)/)
                             .map((data, index) =>
                               renderGptResponse(data, index)
@@ -691,13 +677,13 @@ const HomePage = () => {
                             <HiMiniPencil
                               className="fill-gray-400"
                               onClick={() =>
-                                handleUserEditClick(item.id, item.parts)
+                                handleUserEditClick(item.id, item.parts[0].text)
                               }
                             />
                           )
-                        ) : item.parts ? (
+                        ) : item.parts.length > 0 && item.parts[0].text ? (
                           <CopyToClipboard
-                            text={item.parts}
+                            text={item.parts[0].text}
                             onCopy={(text, result) =>
                               setGptResponseCopied(result)
                             }
