@@ -148,7 +148,7 @@
   overflow: hidden;
 }
 
-#content .sidebar-container {
+.sidebar-container {
   width: 260px;
   height: 100%;
   background-color: #000000;
@@ -376,4 +376,30 @@
 
 .response-container.user .response p {
   white-space: pre-wrap;
+}
+
+@media (max-width: 480px) {
+  .sidebar-container.large-screen {
+    display: none;
+  }
+
+  .sidebar-container.small-screen {
+    display: block;
+  }
+}
+
+/* Media Query for low resolution  Tablets, Ipads */
+@media (min-width: 481px) and (max-width: 767px) {
+  .sidebar-container.large-screen {
+    display: none;
+  }
+  .sidebar-container.small-screen {
+    display: block;
+  }
+}
+
+@media (max-width: 767px) {
+  .chat-response-container {
+    padding-left: 50px;
+  }
 }
