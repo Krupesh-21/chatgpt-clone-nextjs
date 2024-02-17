@@ -253,7 +253,6 @@ const HomePage = () => {
   };
 
   const renderGptResponse = (data, index) => {
-    console.log({ data });
     const { text, languageKeyword, blockId } =
       extractLanguageKeywordAndText(data) || {};
 
@@ -538,7 +537,8 @@ const HomePage = () => {
                         )
                       ) : item.parts.length > 0 && item.parts[0].text ? (
                         item.parts[0].text
-                          .split(/(```[^`]+```)/)
+                          .split(/(```[\s\S]+?```)|\n+/g)
+                          .filter((item) => item)
                           .map((data, index) => renderGptResponse(data, index))
                       ) : (
                         <div
