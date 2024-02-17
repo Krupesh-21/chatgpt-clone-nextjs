@@ -14,9 +14,8 @@ export async function POST(request) {
       },
     };
 
-    if (history.length > 0 && history.length % 2 === 0) {
-      chatObj.history = history;
-    }
+    chatObj.history = history;
+    console.log(chatObj);
     const chat = model.startChat(chatObj);
 
     const result = await chat.sendMessage(prompt);
