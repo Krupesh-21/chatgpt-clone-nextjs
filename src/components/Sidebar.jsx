@@ -36,7 +36,7 @@ const Sidebar = ({
           <FiEdit />
         </div>
       </div>
-      <div className="chat-history-container">
+      <div className="chat-history-container overflow-auto h-[calc(100%_-_60px)]">
         {chatHistory.length > 0
           ? chatHistory.map((item) =>
               renameChatTitle.id === item.historyId ? (

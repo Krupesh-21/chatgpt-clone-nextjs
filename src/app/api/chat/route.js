@@ -15,7 +15,6 @@ export async function POST(request) {
     };
 
     chatObj.history = history;
-    console.log(chatObj);
     const chat = model.startChat(chatObj);
 
     const result = await chat.sendMessage(prompt);

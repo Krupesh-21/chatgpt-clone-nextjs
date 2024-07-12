@@ -156,6 +156,12 @@
   flex-shrink: 0;
 }
 
+@supports (max-height;: 100dvh){
+  .sidebar-container{
+    max-height: 100dvh;
+  }
+}
+
 .chat-response-container {
   height: 100%;
   overflow-y: auto;
@@ -332,6 +338,10 @@
 
 .sidebar-container .chat-history-container {
   margin-top: 6px;
+}
+
+.sidebar-container .chat-history-container::-webkit-scrollbar{
+  display: none;
 }
 
 .sidebar-container .chat-history-container .title-container {
