@@ -316,7 +316,7 @@ const HomePage = () => {
 
   return (
     <div id="content">
-      <AnimatedProgressScroll ref={containerRef} />
+      {history.length > 1 && <AnimatedProgressScroll ref={containerRef} />}
       <div className="sidebar-container large-screen lg:block md:hidden sm:hidden xs:hidden">
         <Sidebar {...sidebarProps} />
       </div>
