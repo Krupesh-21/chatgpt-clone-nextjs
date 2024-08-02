@@ -28,6 +28,10 @@ import Sidebar from "@/components/Sidebar";
 
 import { FiMenu } from "react-icons/fi";
 import "./app.css";
+import AnimatedProgressScroll from "@/components/AnimatedProgressScroll";
+import { marked } from "marked";
+import DOMPurify from "dompurify";
+import MarkdownText from "@/components/MarkdownText";
 
 const HomePage = () => {
   const [prompt, setPrompt] = useState("");
@@ -55,6 +59,8 @@ const HomePage = () => {
 
   const promptRef = useRef(null);
   const bottomRef = useRef(null);
+
+  const containerRef = useRef(null);
 
   const sendPromptToServer = async () => {
     const _history = [
@@ -138,20 +144,6 @@ const HomePage = () => {
     }
   }, [prompt]);
 
-  const extractLanguageKeywordAndText = (input) => {
-    const regex = /^\s*```(\w*)\s*\n*([\s\S]*?)\n*\s*```/;
-    const matches = input.match(regex);
-
-    if (matches && matches.length >= 3) {
-      const languageKeyword = matches[1];
-      const text = matches[2];
-      const blockId = uuid();
-      return { languageKeyword, text, blockId };
-    }
-
-    return null;
-  };
-
   function splitString(input) {
     // Match pattern until the first comma, full stop, semicolon, or question mark is encountered, or until the 200th character
     const regex = /^(.{0,200}[^,.;?]*)(?:,|\.|;|\?)?/;
@@ -161,36 +153,6 @@ const HomePage = () => {
     }
     return input.slice(0, 200); // If pattern not found, return the first 200 characters
   }
-
-  const renderText = (text) => (
-    <p
-      key={text + 1}
-      dangerouslySetInnerHTML={{
-        __html: text
-          .replaceAll(/\*\*(.*?)\*\*/g, "<b>$1</b>")
-          .replaceAll(/(?<!`)(`[^`]+`)(?!`)/g, (match, p1) => {
-            const encodedContent = p1.replace(/[<>&'"]/g, (char) => {
-              switch (char) {
-                case "<":
-                  return "&lt;";
-                case ">":
-                  return "&gt;";
-                case "&":
-                  return "&amp;";
-                case "'":
-                  return "&#39;";
-                case '"':
-                  return "&quot;";
-                default:
-                  return char;
-              }
-            });
-            return `<span class='highlight'>${encodedContent}</span>`;
-          })
-          .replace(/^\*/, "-"),
-      }}
-    ></p>
-  );
 
   const handleNewChatClick = () => {
     const oldHistoryData = [...chatHistory];
@@ -251,53 +213,6 @@ const HomePage = () => {
       localStorage.setItem("chat_history", JSON.stringify(oldHistoryData));
     }
   };
-
-  const renderGptResponse = (data, index) => {
-    const { text, languageKeyword, blockId } =
-      extractLanguageKeywordAndText(data) || {};
-
-    if (data.startsWith("```") && extractLanguageKeywordAndText(data)) {
-      return (
-        <div key={data} className="code-block-container">
-          <div className="title-copy-container">
-            <span>{languageKeyword}</span>
-            <CopyToClipboard
-              text={text}
-              onCopy={(text, result) => {
-                setCodeblockCopied({ copied: result, index });
-              }}
-            >
-              <div className="icon">
-                <div className="d-flex">
-                  {codeblockCopied.copied && index === codeblockCopied.index ? (
-                    <IoMdCheckmark />
-                  ) : (
-                    <GoPaste />
-                  )}
-                </div>
-                <span>
-                  {codeblockCopied.copied && index === codeblockCopied.index
-                    ? "Copied"
-                    : "Copy Code"}
-                </span>
-              </div>
-            </CopyToClipboard>
-          </div>
-          <pre className="code-block text-sm	">
-            <code>{text}</code>
-          </pre>
-        </div>
-      );
-    } else if (data.split("\n").filter((d) => d.length > 0).length > 0) {
-      return data
-        .split("\n")
-        .filter((d) => d.length > 0)
-        .map((d) => renderText(d));
-    }
-
-    return renderText(data);
-  };
-
   const handlePromptData = () => {
     if (promptRef.current.value.trim().length > 0) {
       setPrompt(promptRef.current.value);
@@ -401,6 +316,7 @@ const HomePage = () => {
 
   return (
     <div id="content">
+      <AnimatedProgressScroll ref={containerRef} />
       <div className="sidebar-container large-screen lg:block md:hidden sm:hidden xs:hidden">
         <Sidebar {...sidebarProps} />
       </div>
@@ -463,7 +379,7 @@ const HomePage = () => {
             </PopoverContent>
           </Popover>
         </div>
-        <div className="chat-response-container">
+        <div className="chat-response-container" ref={containerRef}>
           {history.length > 0 ? (
             history.map((item, index) => (
               <>
@@ -536,10 +452,7 @@ const HomePage = () => {
                           <p>{item.parts[0].text}</p>
                         )
                       ) : item.parts.length > 0 && item.parts[0].text ? (
-                        item.parts[0].text
-                          .split(/(```[\s\S]+?```)|\n+/g)
-                          .filter((item) => item)
-                          .map((data, index) => renderGptResponse(data, index))
+                        <MarkdownText data={item.parts[0].text} />
                       ) : (
                         <div
                           id="blinking-cursor"

@@ -310,6 +310,16 @@
   font-size: 12px;
 }
 
+pre{
+  background-color: #202123;
+  color: #fff;
+  padding: 2px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
 .chat-response-container
   .response-container
   .chat-response
